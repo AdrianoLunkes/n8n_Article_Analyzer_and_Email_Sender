@@ -1,0 +1,220 @@
+{
+  "name": "Article Analyzer and Email Sender",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "triggerAtHour": 8
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        0,
+        0
+      ],
+      "id": "b07c157c-b156-420c-8d47-93538df333bc",
+      "name": "Schedule Trigger"
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "1WPog_7nYeS2Dwm5HvNvVOewK1hiFMFheufw2UXIDbts",
+          "mode": "list",
+          "cachedResultName": "Sheet Starn8n",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1WPog_7nYeS2Dwm5HvNvVOewK1hiFMFheufw2UXIDbts/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Sheet1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1WPog_7nYeS2Dwm5HvNvVOewK1hiFMFheufw2UXIDbts/edit#gid=0"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        208,
+        0
+      ],
+      "id": "77994fde-e8eb-4500-9b8a-5f364a97d427",
+      "name": "Get row(s) in sheet",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "RKVMfhJqXaJcyyW0",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "url": "={{ $json['Article LINK'] }}",
+        "sendHeaders": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        416,
+        0
+      ],
+      "id": "8070b77b-e3e1-4fe9-9f0c-d59981f959b2",
+      "name": "HTTP Request"
+    },
+    {
+      "parameters": {
+        "operation": "extractHtmlContent",
+        "extractionValues": {
+          "values": [
+            {
+              "key": "txt_key",
+              "cssSelector": "p",
+              "returnArray": true
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.html",
+      "typeVersion": 1.2,
+      "position": [
+        624,
+        0
+      ],
+      "id": "131ebf2c-e615-4540-beaf-113bd90d8a0f",
+      "name": "HTML"
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "models/gemini-2.5-flash",
+          "mode": "list",
+          "cachedResultName": "models/gemini-2.5-flash"
+        },
+        "messages": {
+          "values": [
+            {
+              "content": "=Tu tarea es analizar el texto proporcionado y generar un resumen claro, preciso y estructurado en exactamente 5 puntos.\n\nREQUISITOS OBLIGATORIOS:\n1. El resumen debe estar SIEMPRE escrito en español (España), independientemente del idioma del texto original.\n2. Debes generar exactamente 5 puntos, numerados del 1 al 5.\n3. Cada punto debe ser breve pero informativo.\n4. No añadas conclusiones adicionales, notas, explicaciones ni advertencias.\n5. No traduzcas el texto completo, solo resume su contenido.\n\nFormato de salida:\n1. …\n2. …\n3. …\n4. …\n5. …\n\nTexto para analizar:\n{{ $json[\"txt_key\"] }}\n"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.googleGemini",
+      "typeVersion": 1,
+      "position": [
+        832,
+        0
+      ],
+      "id": "1e6a1178-f5ea-4250-8b85-6cde44000dcb",
+      "name": "Message a model",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "JFjFb2rXe95ZCq4f",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $('Get row(s) in sheet').item.json.Email }}",
+        "subject": "=Article Summaries Attached {{ $('Get row(s) in sheet').item.json['Article LINK'] }}",
+        "emailType": "text",
+        "message": "={{ $('Get row(s) in sheet').item.json.Email }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        1184,
+        0
+      ],
+      "id": "7ccb0ffa-f572-4afc-a336-585b95068cd2",
+      "name": "Send a message",
+      "webhookId": "2654fe8b-63cc-4d93-bd6c-cba026f08414",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "wSpUP7VJtG4tTzd5",
+          "name": "Gmail account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "Get row(s) in sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get row(s) in sheet": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request": {
+      "main": [
+        [
+          {
+            "node": "HTML",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTML": {
+      "main": [
+        [
+          {
+            "node": "Message a model",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Message a model": {
+      "main": [
+        [
+          {
+            "node": "Send a message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "58f5aaeb-ff62-4991-9d9e-eb0a333c4786",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "2d0a49a08fdf169f448ce8f2ab68f95a1e7c8d8ce5e0984eb31dfd3a4c9ebb23"
+  },
+  "id": "E6VKwU55uyFLbRat",
+  "tags": []
+}
